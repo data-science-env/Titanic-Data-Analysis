@@ -1,6 +1,8 @@
 *****
 # Titanic Data Analysis
 *****
+**Important:** La resolució de la pràctica es pot veure en el següent enllaç https://data-science-env.github.io/Titanic-Data-Analysis/
+
 ## Presentació
 En aquesta pràctica s’elabora un cas pràctic orientat a aprendre a identificar les dades rellevants per un projecte analític i usar les eines d’integració, neteja, validació i anàlisi de les mateixes.
 
