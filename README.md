@@ -39,6 +39,15 @@ Seguint les principals etapes d’un projecte analític, les diferents tasques a
 6. Resolució del problema. A partir dels resultats obtinguts, quines són les conclusions? Els resultats permeten respondre al problema?
 7. Codi: Cal adjuntar el codi, preferiblement en R, amb el que s’ha realitzat la neteja, anàlisi i representació de les dades. Si ho preferiu, també podeu treballar en Python.
 
+## Descripció fitxers
+El repositori s'ha estructurat en tres carpetes anomenades `code`, `data` i `doc`.
+
+En la carpeta `code` es troba el fitxer amb el codi R anomenat `titanic.rmd` i una capçalera per al fitxer  quan aquest és exportat utilitzant Knit anomenat `header.html`.
+
+En la carpeta `data` es troben els CSV d'entrada per a la PAC anomenats `titanic-test.csv` i `titanic-train.csv`, així com el fitxer result de l'analisi anomenat `titanic-end.csv`.
+
+En la carpeta `docs` es troba el fitxer final generat Knit en format HTML anomenat `index.html` així com també en formart PDF anomenat `index.pdf`.
+
 ## Contribucions al treball
 
 | Contribucions             | Signatura |

@@ -70,6 +70,8 @@ Seguint les principals etapes d’un projecte analític, les diferents tasques a
 # Resolució
 *****
 
+**Important**: La resolució de la pràctica es pot veure en el següent enllaç https://data-science-env.github.io/Titanic-Data-Analysis/
+
 ## Descripció del dataset
 En aquesta pràctica es treballarà amb el ben conegut dataset Titanic. Aquest dataset conté dades de l'històric enfonsament del vaixell Titanic. És un dataset molt utilitzat i treballat per molta gent de tot el món per la seva estructura simple per a iniciar-se al món del machine learning. A més cal destacar que les dades que tracta poden entendres facilment. El dataset proporciona informació sobre el destí dels passatgers al Titànic, resumits segons l'estat econòmic (classe), el sexe, l'edat i la supervivència. L'objectiu típic és desenvolupar models capaços de fer prediccions sobre si un passatge va sobreviure o no a l'accident.
 
@@ -192,7 +194,7 @@ Podem veure que els tres passatgers sembla que no tenen cap relació familiar en
 
 A continuació, ens proposem analitzar les relacions entre les diferents variables del joc de dades i la variable objectiu `Survived`.
 
-En aquest primer plot podem veure la relació entre la variable `sex` i `survived`. Podem veure com en tant per cent les dones van sobreviure més que els homes, això ens pot fer entendre que es va prioritzar el salvament de les dones. Dincs del grup de les dones podem veure com un 74.2% d'elles van sobreviure. Si en canvi fem la mateixa visualització per als homes, podem veure com solament el 18.9% dels homes va sobreviure.
+En aquest primer plot podem veure la relació entre la variable `Sex` i `Survived`. Podem veure com en tant per cent les dones van sobreviure més que els homes, això ens pot fer entendre que es va prioritzar el salvament de les dones. Dincs del grup de les dones podem veure com un 74.2% d'elles van sobreviure. Si en canvi fem la mateixa visualització per als homes, podem veure com solament el 18.9% dels homes va sobreviure.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 # Visualitzem la relació entre les variables "sex" i "survival":
@@ -237,7 +239,6 @@ A continuació anem a generar un variable més per al dataset indicant si el pas
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 data$old <- 'adult'
 data$old[data$Age < 15]<-'child'
-data$old<-as.factor(data$old)
 
 # Comprovem quants nens i adults tenim en la població
 table(data$old)
@@ -245,27 +246,25 @@ table(data$old)
 
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
-# Visualitzem la relació entre les variables "sex" i "survival":
-ggplot(data=data,aes(x=old,fill=Survived))
+# Visualitzem la relació entre les variables "old" i "survival":
+ggplot(data = data,aes(x=old,fill=Survived))+geom_bar(position="fill")
 ```
 
 A continuació generarem un gràfic de freqüències on representarem 3 variables: `Embarked`, `Survived` i `Pclass`.  Amb aquest plot podem veure com els passatgers que anaven en primera o segona van sobreviure més que els que els passatgers que anaven en tercera classe.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
-# Mostrem el gràfic d'embarcats per Pclass:
+# Mostrem el gràfic d'embarcats per Pclass
 ggplot(data = data,aes(x=Embarked,fill=Survived))+geom_bar(position="fill")+facet_wrap(~Pclass)
 ```
 
-Comparem ara dos gràfics de freqüències: Survived-SibSp i Survived-Parch
+A continuació comparem amb dos gràfics de freqüències les parelles de variables Survived-SibSp i Survived-Parch. Veiem com la forma d'aquests dos gràfics és similar. Aquest fet ens pot indicar presència de correlacions altes.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
-# Survival com a funció de SibSp i Parch
 ggplot(data = data,aes(x=SibSp,fill=Survived))+geom_bar()
 ggplot(data = data,aes(x=Parch,fill=Survived))+geom_bar()
-# Veiem com la forma d'aquests dos gràfics és similar. Aquest fet ens pot indicar presència de correlacions altes.
 ```
 
-A partir de la variable 'NumFamiliars' comprovem quina ha estat la supervivència en funció del nombre de familiars a bord. Podem observar com les famílies de 2 a 4 membres tenen més del 50% de possibilitats de supervivència. Podem veure que a partir de 5 membres la supervivència és molt escassa fins al punt de trobar que en famílies de 8 o 11 membres la supervivència és nul·la.  
+A partir de la variable `NumFamiliars` comprovem quina ha estat la supervivència en funció del nombre de familiars a bord. Podem observar com les famílies de 2 a 4 membres tenen més del 50% de possibilitats de supervivència. Podem veure que a partir de 5 membres la supervivència és molt escassa fins al punt de trobar que en famílies de 8 o 11 membres la supervivència és nul·la.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 ggplot(data = data[!is.na(data$NumFamiliars),],aes(x=NumFamiliars,fill=Survived))+geom_histogram(binwidth =1,position="fill")+ylab("Frequència")
@@ -285,7 +284,9 @@ A continuació és farà un estudi utilitzant anàlisis estadística. Aquest est
 
 Amb l’objectiu de verificar la suposició de la normalitat, algunes de les proves més habituals són els tests de Kolmogorov-Smirnov i de Shapiro-Wilk. Tot i que tots dos comparen la distribució de les dades amb una distribució normal, el test de Shapiro-Wilk es considera un dels mètodes més potents per contrastar la normalitat. Assumint com a hipòtesi nul·la que la població està distribuïda normalment, si el p-valor és més petit que el nivell de significació, generalment α=0,05, llavors la hipòtesi nul·la és rebutjada i es conclou que les dades no compten amb una distribució normal. Si, per contra, el p-valor és major a α, es conclou que no es pot rebutjar aquesta hipòtesi i s’assumeix que les dades segueixen una distribució normal. 
 
-El següent fragment de codi a R mostra com es poden aplicar aquestes proves, mitjançant les funcions ks.test() i shapiro.test(), respectivament.
+El següent fragment de codi a R mostra com es poden aplicar aquestes proves, mitjançant les funcions ks.test() i shapiro.test(), respectivament. A més és fara ús del mètode ecdf() per mostrar gràficament la Empirical Cumulative Distribution Function, veient d'aquesta manera una comparativa entre les edats dels homes i les dones al llarg del dataset.
+
+Podem veure com ambudes linies tenen la mateixa forma, així doncs podem dir que tenim un dataset compensat en la variable `Age`. Si ens fixem en els resultat de ks i shapiro veiem com el p-value està per sota del llindar α, així doncs sembla que no segueix una distribució normal.
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 
 age_female <- data$Age[data$Sex=="female"]
@@ -305,6 +306,13 @@ En la prova t de Student, la hipòtesi nul·la assumeix que les mitjanes dels gr
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 t.test(age_female,age_male)
 t.test(age_female,age_male,alternative = "less")
+t.test(age_female,age_male,alternative = "greater")
+```
+
+Finalment, seguint els criteris de la pràctica es generarà de nou un CSV amb el dataset al final de l'anàlisi.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+write.csv(data,"../data/titanic-end.csv", row.names = FALSE)
+
 ```
 
 ## Conclusions
@@ -313,7 +321,9 @@ Una vegada conclos l'estudi presentem les següents conclusions sobre el dataset
 
 S'ha pogut observar com les dades són molt netes, això és degut a que aquest dataset esta pensat per ser estudiat per gent principiant al món del Data Science. S'ha pogut comprovar com solament havien valors buits per a la variable `Age` els quals han estat emplenats amb el valor mitja de la població. També s'ha comprovat mitjançant diagrames de caixa l'existencia de valors extrems en les variables `Age`, `SibSp`, `Parch` i `Fare`. Gracies al coneixement que tenim sobre el dataset em estat capaços de concloure que els valors extrems és poden considerar perfectament valors normals per al dataset i no s'ha procedit a l'eliminació de cap observació.
 
-Hem pogut veure com la proporció entre homes i dones que van sobreviure és bastant diferent. En general és va salvar un tant percent més alt de dones que d'homes. També s'ha pogut comprovar 
+Hem pogut veure com la proporció entre homes i dones que van sobreviure és bastant diferent. En general és va salvar un tant percent més alt de dones que d'homes. També s'ha pogut comprovar que la relació entre la supervivencia dels nens i els adults també és bastant diferent tenint els nens una tassa de supervivencia més alta. Així doncs podem pensar que el protocol d'ebacuació del vaixell prioritzava a les dones i els nens abans que els homes. Així doncs, un simple agent que respongues sempre Sí a les preguntes on el passatger sigui nen o dona tindrà moltes possiblitats d'encertar, així com repondre No en cas dels homes.
+
+Hem pogut veure gràcies a les proves realitzades sobre el conjunt amb els tests de Kolmogorov-Smirnov i de Shapiro-Wilk, que la variable `Age` no segueix una distribució normal.
 
 
 
@@ -324,3 +334,5 @@ Hem pogut veure com la proporció entre homes i dones que van sobreviure és bas
 | Investigació prèvia       | AMP       |
 | Redacció de les respostes | AMP       |
 | Desenvolupament codi      | AMP       |
+
+**Important**: La resolució de la pràctica es pot veure en el següent enllaç https://data-science-env.github.io/Titanic-Data-Analysis/
