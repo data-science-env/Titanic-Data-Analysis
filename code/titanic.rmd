@@ -71,31 +71,251 @@ Seguint les principals etapes d’un projecte analític, les diferents tasques a
 *****
 
 ## Descripció del dataset
+En aquesta pràctica es treballarà amb el ben conegut dataset Titanic. Aquest dataset conté dades de l'històric enfonsament del vaixell Titanic. És un dataset molt utilitzat i treballat per molta gent de tot el món per la seva estructura simple per a iniciar-se al món del machine learning. A més cal destacar que les dades que tracta poden entendres facilment. El dataset proporciona informació sobre el destí dels passatgers al Titànic, resumits segons l'estat econòmic (classe), el sexe, l'edat i la supervivència. L'objectiu típic és desenvolupar models capaços de fer prediccions sobre si un passatge va sobreviure o no a l'accident.
+
+Els fitxers necessaris han estat descarregats des de la pàgina web Kaggle mitjançant el següent [enllaç](https://www.kaggle.com/c/titanic/data]). Com podem veure Kaggle ens proporciona dos fitxers anomenats train i test. En el primer es troben les dades d'entrenament, així doncs inclou una columna indicant si el passatger sobreviu o no. En canvi, en el fitxer de test no existeix cap columna que indiqui si el passatger va sobreviure. Això ve donat així, ja que Kaggle fa una competició amb els models generats pels diferents participants. A partir del model generat amb el dataset d'entrenament, utilitzen el dataset de test per avaluar el model i així generar una puntuació indicant com de bé és el model.
+
 
 ## Integració i selecció de les dades d’interès a analitzar
+
+Inicialment caldrà que carreguem les dades d'entrenament que utilitzarem per fer l'anàlisi. El fitxer proporcionat és un fitxer en format CSV (Comma Separated Values). A la càrrega de dades indicarem que no volem que es transformin automàticament totes les variables de tipus caràcter a factors, això serà una decisió que prendrem a través de l'anàlisi.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 # Carreguem els paquets R que utilitzarem
 library(dplyr)
+library(ggplot2)
 
-# Guardem el joc de dades test i train en un únic dataset
-test <- read.csv('../data/titanic-test.csv',stringsAsFactors = FALSE)
-train <- read.csv('../data/titanic-train.csv', stringsAsFactors = FALSE)
-
-# Unim els dos jocs de dades en un només
-data <- bind_rows(train,test)
+# Guardem el joc de dades train en una variable
+data <- read.csv('../data/titanic-train.csv', stringsAsFactors = FALSE)
 
 # Verifiquem l'estructura del joc de dades
 str(data)
 ```
 
+Com podem veure el dataset Titanic té un total de 891 observacions en el fitxer d'entrenament. A més podem veure que compta amb 12 variables de les quals hi ha 7 de contínues i 5 de categòriques, les quals descrivim a continuació:
+
+* `PassengerId`: Identificador únic per a cada passatger
+* `Survived`: Indica si el passatger sobreviu al naufragi (0 = No , 1 = Si)
+* `Pclass`: Classe del passatger (1 = primera, 2 = segona, 3 = tercera)
+* `Name`: Nom del passatger
+* `Sex`: Sexe del passatger
+* `Age`: Edat en anys del passatger
+* `SibSp`: Nombre de germans/germanes/germanastres/germanastres a bord
+* `Parch`: Nombre de pares/fills a bord
+* `Ticket`: Número de bitllet
+* `Fare`: Preu pagat pel bitllet
+* `Cabin`: Identificador de la cabina assignada
+* `Embarked`: Port on va embarcar el passatger
+
 ## Neteja de les dades
 
-## Anàlisi de les dades
+Treballem els atributs amb valors buits.
 
-## Representació dels resultats
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Estadístiques de valors buits
+colSums(is.na(data))
+colSums(data=="")
+```
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Prenem valor "C" per als valors buits de la variable "Embarked"
+data$Embarked[data$Embarked==""]="C"
+
+# Prenem la mitjana per a valors buits de la variable "Age"
+data$Age[is.na(data$Age)] <- mean(data$Age,na.rm=T)
+```
+
+
+Discretitzem quan té sentit i en funció de cada variable. Per decidir quines variables discretitzar primerament veurem quants registres diferents existeixen en cada variable. Un cop generada aquestà taula elegirem aquelles variables que continguin pocs registres diferents.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Per a quines variables tindria sentit un procés de discretizació?
+apply(data,2, function(x) length(unique(x)))
+
+# Discretitzem les variables amb poques classes
+cols<-c("Survived","Pclass","Sex","Embarked")
+for (i in cols){
+  data[,i] <- as.factor(data[,i])
+}
+
+# Després dels canvis, analitzem la nova estructura del joc de dades
+str(data)
+```
+
+Les variables discretitzades han estat `Survived` amb 2 classes, `Pclass` amb 3 classes, `Sex` amb 2 classes i `Embarked` amb 3 classes. També podem veure com la variable `PassangerId` efectivament conté un valor diferent en cada observació com era d'esperar.
+
+Per últim podem treballar els valors 0.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Estadístiques de valors 0
+colSums(data==0)
+```
+
+Encara que hi ha 4 variables amb observacions amb valor 0, no considerarem aquest valor com a dolent a causa del tipus de variables que estem tractant. No obstant podem observar amb més detall les observacions on la variable `Fare` conté el valor 0 ja que hi ha poques observacions. D'aquestes dades les conclusions que podem treure és que els passatgers que aparentment van viatjar de franc eren tot homes, tots van embarcar al mateix port i no anaven acompanyats de ningun familiar.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Estadístiques de valors 0
+data[data$Fare==0,]
+```
+
+A continuació donem una ullada als outliers o valors atípics. Aquests valors solen representar valors extrems dins d'un conjunt de dades. Normalment se sol considerar aquests valors com els valors que marxen com a mínim dues desviacions estàndard dins del conjunt de dades. Per tal d'identificar-los farem ús del mètode boxplot() proporcionat per R el qual ens mostrarà gràficament els outiliers en cas que existeixin.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+par(mfrow=c(2,2))
+boxplot(data$Age)
+boxplot(data$SibSp)
+boxplot(data$Parch)
+boxplot(data$Fare)
+```
+
+En aquest cas s'han escollit únicament aquelles variables numèriques i no factoritzades. En el plot de dalt a l'esquerra podem veure com l'edat dels passatges ronda els trenta anys. Els valors extrems que ens apareixen són nadons i padrins que no superen edats fora del normal, així doncs s'han de considerar tots els casos. El plot de dalt a la dreta i baix a l'esquerra no es qüestionaran, ja que és possible que surtin els resultats donats, ja que poden haver-hi famílies a bord. Per últim, en plot de baix a l'esquerra sí que veiem que hi ha un valor que marxa massa de la resta, per tant aquest sí que l'estudiarem més endavant per veure les característiques associades a la seva observació.
+
+## Anàlisi de les dades
+Abans de començar a analitzar les dades crearem una nova variable que anomenarem `NumFamiliars` on tindrem el nombre de familiars a bord de cada passatger i per tant poder fer analisis per nombre de familiars.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Construïm un atribut nou: NumFamiliars
+data$NumFamiliars <- data$SibSp + data$Parch + 1;
+
+# Després dels canvis, analitzem la nova estructura del joc de dades
+str(data)
+```
+
+Com haviem dit durant la neteja de dades estudariem el cas atipic on s'ha pagat una gran quantitat pel bitllet. La quantitat pagada ha estat 512.3292 lliures, i aquesta l'han pagada tres passatgers. Per tant comprovem si aquests van pujar junts i per tant poden ser familia.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+fare_outliers <- boxplot.stats(data$Fare)$out
+fare_outliers[fare_outliers>300]
+
+data[data$Fare>500,]
+```
+
+Podem veure que els tres passatgers sembla que no tenen cap relació familiar entre ells. Tots tres ronden la mateixa edat, van embarcar al mateix port i viatgen en primera classe. El primer i el tercer passatger no tenen ni germans ni pares/fills així doncs podem concloure que viatgen sols. En canvi el segon passatger podem veure com sí que té un familiar a bord. Així doncs podem concloure que els tres individus, com a mínim, no tenen cap relació familiar entre ells i per tant el preu pagat pel bitllet podria ser simplement per un possible estatus social alt.
+
+
+A continuació, ens proposem analitzar les relacions entre les diferents variables del joc de dades i la variable objectiu `Survived`.
+
+En aquest primer plot podem veure la relació entre la variable `sex` i `survived`. Podem veure com en tant per cent les dones van sobreviure més que els homes, això ens pot fer entendre que es va prioritzar el salvament de les dones. Dincs del grup de les dones podem veure com un 74.2% d'elles van sobreviure. Si en canvi fem la mateixa visualització per als homes, podem veure com solament el 18.9% dels homes va sobreviure.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Visualitzem la relació entre les variables "sex" i "survival":
+ggplot(data=data,aes(x=Sex,fill=Survived))+geom_bar()
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+t<-table(data$Sex,data$Survived)
+for (i in 1:dim(t)[1]){
+    t[i,]<-t[i,]/sum(t[i,])*100
+}
+t
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Un altre punt de vista. Survival com a funció de Embarked:
+ggplot(data=data, aes(x=Embarked,fill=Survived))+geom_bar(position="fill")+ylab("Frequència")
+
+```
+
+
+Obtenim una matriu de percentatges de freqüència.
+Veiem, per exemple que la probabilitat de sobreviure si es va embarcar en "C" és d'un 55,88%
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+t<-table(data$Embarked,data$Survived)
+for (i in 1:dim(t)[1]){
+    t[i,]<-t[i,]/sum(t[i,])*100
+}
+t
+```
+
+A continuació anem a veure en el següent histograma com està distribuïda la població en funció de la seva edat. Amb això es vol comprovar si es va tenir preferència per salvar als nens, considerats fins als catorze anys, abans que els adults, considerats de 15 fina el valor màxim. Podem veure com l'edat de la majoria dels passatgers oscil·la entre els 20 i els 30 anys.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+hist(data$Age)
+```
+
+A continuació anem a generar un variable més per al dataset indicant si el passatger és un nen o un adult, d'aquesta manera podrem generar grafics que ens mostrin la hipotesis que estudiem.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+data$old <- 'adult'
+data$old[data$Age < 15]<-'child'
+data$old<-as.factor(data$old)
+
+# Comprovem quants nens i adults tenim en la població
+table(data$old)
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Visualitzem la relació entre les variables "sex" i "survival":
+ggplot(data=data,aes(x=old,fill=Survived))
+```
+
+A continuació generarem un gràfic de freqüències on representarem 3 variables: `Embarked`, `Survived` i `Pclass`.  Amb aquest plot podem veure com els passatgers que anaven en primera o segona van sobreviure més que els que els passatgers que anaven en tercera classe.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Mostrem el gràfic d'embarcats per Pclass:
+ggplot(data = data,aes(x=Embarked,fill=Survived))+geom_bar(position="fill")+facet_wrap(~Pclass)
+```
+
+Comparem ara dos gràfics de freqüències: Survived-SibSp i Survived-Parch
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Survival com a funció de SibSp i Parch
+ggplot(data = data,aes(x=SibSp,fill=Survived))+geom_bar()
+ggplot(data = data,aes(x=Parch,fill=Survived))+geom_bar()
+# Veiem com la forma d'aquests dos gràfics és similar. Aquest fet ens pot indicar presència de correlacions altes.
+```
+
+A partir de la variable 'NumFamiliars' comprovem quina ha estat la supervivència en funció del nombre de familiars a bord. Podem observar com les famílies de 2 a 4 membres tenen més del 50% de possibilitats de supervivència. Podem veure que a partir de 5 membres la supervivència és molt escassa fins al punt de trobar que en famílies de 8 o 11 membres la supervivència és nul·la.  
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+ggplot(data = data[!is.na(data$NumFamiliars),],aes(x=NumFamiliars,fill=Survived))+geom_histogram(binwidth =1,position="fill")+ylab("Frequència")
+```
+
+Vegem ara dos gràfics que ens compara els atributs Age i Survived.
+Observem com el paràmetre position="fill" ens dóna la proporció acumulada d'un atribut dins d'un altre
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Survival com a funció de age:
+ggplot(data = data[!(is.na(data$Age)),],aes(x=Age,fill=Survived))+geom_histogram(binwidth =3)
+ggplot(data = data[!is.na(data$Age),],aes(x=Age,fill=Survived))+geom_histogram(binwidth = 3,position="fill")+ylab("Frequència")
+```
+
+
+A continuació és farà un estudi utilitzant anàlisis estadística. Aquest estudi es farà sobre la variable `Age` comparant les edats dels homes i de les dones a traves de la variable `Sex`. Em pogut veure en aquest ultim plot com la freqüencia de supervivencia està aprop del 50%. Així doncs amb aquest analisi volem veure si es segueix mantenint aquest percentatge quan separem homes i dones en dos grups.
+
+Amb l’objectiu de verificar la suposició de la normalitat, algunes de les proves més habituals són els tests de Kolmogorov-Smirnov i de Shapiro-Wilk. Tot i que tots dos comparen la distribució de les dades amb una distribució normal, el test de Shapiro-Wilk es considera un dels mètodes més potents per contrastar la normalitat. Assumint com a hipòtesi nul·la que la població està distribuïda normalment, si el p-valor és més petit que el nivell de significació, generalment α=0,05, llavors la hipòtesi nul·la és rebutjada i es conclou que les dades no compten amb una distribució normal. Si, per contra, el p-valor és major a α, es conclou que no es pot rebutjar aquesta hipòtesi i s’assumeix que les dades segueixen una distribució normal. 
+
+El següent fragment de codi a R mostra com es poden aplicar aquestes proves, mitjançant les funcions ks.test() i shapiro.test(), respectivament.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+age_female <- data$Age[data$Sex=="female"]
+age_male <- data$Age[data$Sex=="male"]
+plot(ecdf(age_female),col="red")
+lines(ecdf(age_male),col="blue")
+
+ks.test(age_female,age_male)
+shapiro.test(data$Age)
+var.test(age_female,age_male)
+
+```
+
+
+En la prova t de Student, la hipòtesi nul·la assumeix que les mitjanes dels grups de dades són les mateixes, mentre que en les proves no paramètriques s’assumeix que les distribucions dels grups de dades són les mateixes. Per tant, només si el p-valor resultant de la prova és menor al nivell de significació es rebutjarà la hipòtesi nul·la i es conclourà que hi ha diferències estadísticament significatives entre els grups de dades analitzades.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+t.test(age_female,age_male)
+t.test(age_female,age_male,alternative = "less")
+```
 
 ## Conclusions
+
+Una vegada conclos l'estudi presentem les següents conclusions sobre el dataset de titanic. L'estudi s'ha centrat en veure la relació que hi ha hagut entre els passatgers del vaixell i si van sobreviure a l'accident.
+
+S'ha pogut observar com les dades són molt netes, això és degut a que aquest dataset esta pensat per ser estudiat per gent principiant al món del Data Science. S'ha pogut comprovar com solament havien valors buits per a la variable `Age` els quals han estat emplenats amb el valor mitja de la població. També s'ha comprovat mitjançant diagrames de caixa l'existencia de valors extrems en les variables `Age`, `SibSp`, `Parch` i `Fare`. Gracies al coneixement que tenim sobre el dataset em estat capaços de concloure que els valors extrems és poden considerar perfectament valors normals per al dataset i no s'ha procedit a l'eliminació de cap observació.
+
+Hem pogut veure com la proporció entre homes i dones que van sobreviure és bastant diferent. En general és va salvar un tant percent més alt de dones que d'homes. També s'ha pogut comprovar 
+
+
 
 ## Contribucions al treball
 
